@@ -27,6 +27,7 @@ async function run() {
     await client.connect();
 
     const campCollection = client.db("medicalCampDb").collection("camps");
+    const reviewCollection = client.db("medicalCampDb").collection("reviews");
     
     app.get('/camps', async(req, res) => {
         const result = await campCollection.find().toArray();
