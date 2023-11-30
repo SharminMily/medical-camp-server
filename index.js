@@ -53,6 +53,11 @@ async function run() {
         res.send(result);
     })
 
+    app.delete('/camps', async(req, res) => {
+      const result = await campCollection.find().toArray();
+      res.send(result);
+  })
+
     // Send a ping to confirm a successful connection
 
     // await client.db("admin").command({ ping: 1 });
