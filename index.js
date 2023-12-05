@@ -3,12 +3,14 @@ const app = express()
 const cors = require('cors')
 const jwt = require('jsonwebtoken');
 require('dotenv').config()
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 const port = process.env.PORT || 5000;
 
 // middleware
 app.use(cors({
   origin: [
     'http://localhost:5173',
+    // 'https://656e0fb427078403a6a3dccb--spontaneous-sawine-31eaf1.netlify.app'
     'medical-camp-32574.web.app',
     'medical-camp-32574.firebaseapp.com'
 
@@ -40,6 +42,7 @@ async function run() {
     const reviewCollection = client.db("medicalCampDb").collection("reviews");
     const healthCareCollection = client.db("medicalCampDb").collection("healthCare");
     const CartCollection = client.db("medicalCampDb").collection("carts");
+    const paymentCollection = client.db("medicalCampDb").collection("payments");
 
     // jwt related api
     app.post('/jwt', async (req, res) => {
@@ -210,10 +213,40 @@ async function run() {
       const query = { _id: new ObjectId(id) }
       const result = await CartCollection.deleteOne(query);
       res.send(result);
+    })  
+
+ 
+    app.post('/create-payment-intent', async (req, res) => {
+      const { campFees } = req.body;
+      const amount = parseInt(campFees * 100);
+      console.log(amount, 'amount inside the intent')
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    });
+
+    //   payment
+    
+    app.post('/payments', async (req, res) => {
+      const payment = req.body;
+      const paymentResult = await paymentCollection.insertOne(payment);
+
+      //  carefully delete each item from the cart
+      console.log('payment info', payment);
+      const query = {
+        _id: {
+          $in: payment.cartIds.map(id => new ObjectId(id))
+        }
+      };
+      res.send(paymentResult)
     })
-
-
-   
 
   } finally {
     // Ensures that the client will close when you finish/error
